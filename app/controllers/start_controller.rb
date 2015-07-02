@@ -19,24 +19,41 @@ end
 
 class StartController < ApplicationController
   include ActionController::Live
+  include Tubesock::Hijack
 
   def show
     response.headers['Content-Type'] = 'text/event-stream'
-    
-    all_sse = SSE.new(response.stream, retry: 300, event: "all")
-    item_sse = SSE.new(response.stream, retry: 300, event: "item")
+     
+    sse = SSE.new(response.stream, retry: 300)
 
     test_articles = Article.where(title: "Test")
     
-    all_sse.write(test_articles);
+    sse.write(test_articles, {event: "all"});
 
     test_articles.raw.changes.each do |change|
-      item_sse.write(change)
+      sse.write(change, {event: "item"})
     end
   rescue *client_disconnected
   ensure
     sse.close rescue nil
     NoBrainer.disconnect rescue nil
+  end
+
+  def socket
+    hijack do |tubesock|
+      test_articles = Article.where(title: "Test")
+
+      tubesock.send_data({event: 'all', data: test_articles}.to_json)
+
+      test_articles.raw.changes.each do |change|
+        tubesock.send_data({event: 'item', data: change}.to_json)
+      end
+
+      tubesock.onmessage do |data|
+        tubesock.send_data "You said: #{data}"
+      end
+    end
+
   end
 
   private

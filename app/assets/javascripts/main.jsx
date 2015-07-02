@@ -1,8 +1,4 @@
 $( document ).ready(function() {
-    console.log('creating source')
-
-    
-
 
     var TestMixin = {
       componentWillMount: function() {
@@ -20,14 +16,14 @@ $( document ).ready(function() {
       subscribe: function(url, options) {
         var self = this;
         console.log('subscribing to ' + url)
-        this.source = new EventSource("/start/show");
 
-        _.each(options, function(fn, event_name) {
-            console.log("listening for " + event_name)
-            self.source.addEventListener(event_name, function(e) {
-                fn.call(null, JSON.parse(e.data));
-            })
-        })
+        var host = window.location.host;
+        this.socket = new WebSocket("ws://" + host + url)
+
+        this.socket.onmessage = function(e) {
+            var payload = JSON.parse(e.data);
+            options[payload.event].call(null, payload.data)
+        }
       }
     };
 
@@ -40,11 +36,14 @@ $( document ).ready(function() {
       },
       componentWillMount: function() {
         var self = this;
-        self.subscribe('/start/show', {
+        self.subscribe('/start/socket', {
             "all": function(r) {
                 self.setState({articles: r})
             },
             "item": function(r) {
+                var articles = self.state.articles;
+                articles.push(r.new_val)
+                self.setState({articles: articles})
                 console.log('item', r)
             }
         })
