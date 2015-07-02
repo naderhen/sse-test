@@ -41,16 +41,16 @@ class StartController < ApplicationController
 
   def socket
     hijack do |tubesock|
-      test_articles = Article.where(title: "Test")
-
-      tubesock.send_data({event: 'all', data: test_articles}.to_json)
-
-      test_articles.raw.changes.each do |change|
-        tubesock.send_data({event: 'item', data: change}.to_json)
-      end
-
       tubesock.onmessage do |data|
-        tubesock.send_data "You said: #{data}"
+        if data == "test_articles"
+          test_articles = Article.where(title: "Test")
+
+          tubesock.send_data({event: "all", data: test_articles}.to_json)
+
+          test_articles.raw.changes.each do |change|
+            tubesock.send_data({event: "item", data: change}.to_json)
+          end
+        end
       end
     end
 

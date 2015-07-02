@@ -13,12 +13,17 @@ $( document ).ready(function() {
       componentDidUnmount: function() {
         console.log('did unmount')
       },
-      subscribe: function(url, options) {
+      subscribe: function(subscription_name, options) {
         var self = this;
-        console.log('subscribing to ' + url)
+        console.log('subscribing to ' + subscription_name)
 
-        var host = window.location.host;
-        this.socket = new WebSocket("ws://" + host + url)
+        var host = window.location.host + "/start/socket";
+        this.socket = new WebSocket("ws://" + host)
+
+        setTimeout(function() {
+            self.socket.send(subscription_name);
+
+        }, 1000)
 
         this.socket.onmessage = function(e) {
             var payload = JSON.parse(e.data);
@@ -36,7 +41,7 @@ $( document ).ready(function() {
       },
       componentWillMount: function() {
         var self = this;
-        self.subscribe('/start/socket', {
+        self.subscribe('test_articles', {
             "all": function(r) {
                 self.setState({articles: r})
             },
